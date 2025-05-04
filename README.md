@@ -10,7 +10,7 @@ Tamale is a [Lua][] library for structural pattern matching - kind of like regul
 `tamale.matcher` reads a *rule table* and produces a *matcher function*. The table should list `{pattern, result}` rules, which are structurally compared in order against the input. The matcher returns the result for the first successful rule, or `(nil, "Match failed")` if none match.
 
 ### Basic Usage
-
+```lua
     require "tamale"
     local V = tamale.var
     local M = tamale.matcher {
@@ -27,6 +27,7 @@ Tamale is a [Lua][] library for structural pattern matching - kind of like regul
     print(M({"baz", "four"}))  --> "four"
     print(M({"add", 2, 3})     --> 5
     print(M({"sub", 2, 3})     --> nil, "Match failed"
+```
 
 The result can be either a literal value (number, string, etc.), a
 variable, a table, or a function. Functions are called with a table containing the original input and captures (if any); its result is returned. Variables in the result (standalone or in tables) are
@@ -42,10 +43,12 @@ replaced with their captures.
 
 Imperative code to rebalance red-black trees can get pretty hairy. With pattern matching, the list of transformations *is* the code. 
 
+
+```lua
     -- create red & black tags and local pattern variables
     local R,B,a,x,b,y,c,z,d = "R", "B", V"a", V"x", V"b", V"y", V"c", V"z", V"d"
     local balanced = { R, { B, a, x, b }, y, { B, c, z, d } }
-                                                                                                                                     
+                                                                                                                                  
     balance = tamale.matcher {
        { {B, {R, {R, a, x, b}, y, c}, z, d},  balanced },
        { {B, {R, a, x, {R, b, y, c,}}, z, d}, balanced },
@@ -53,6 +56,7 @@ Imperative code to rebalance red-black trees can get pretty hairy. With pattern 
        { {B, a, x, {R, b, y, {R, c, z, d}}},  balanced },
        { V"body", V"body" },      -- default case, keep the same
     }
+```
 
 (Adapted from Chris Okasaki's _Purely Functional Data Structures_.)
 
@@ -77,12 +81,13 @@ Functions are called on the input's corresponding field. If the function's first
 
 Its entire implementation is just 
 
+```lua
     function P(str)
         return function(v)
             if type(v) == "string" then return string.match(v, str) end
         end
     end
-
+```
 
 Rules also have two optional keyword arguments:
 
@@ -90,15 +95,18 @@ Rules also have two optional keyword arguments:
 
 This is used to add further restrictions to a rule, such as a rule that can only take strings *which are also valid e-mail addresses*. (The function is passed the captures table.)
 
+```lua
     -- is_valid(cs) checks cs[1] 
     { P"(.*)", register_address, when=is_valid }
-
+```
 
 ### Partial patterns - `partial=true`
 
 This flag allows a table pattern to match an table input value which has *more fields that are listed in the pattern*.
 
+```lua
     { {tag="leaf"}, some_fun, partial=true }
+```
 
 could match against *any* table that has the value t.tag == "leaf", regardless of any other fields.
 
@@ -111,6 +119,7 @@ Variable names can be any string, though any beginning with _ are ignored during
 
 Also, note that declaring local variables for frequently used Tamale variables can make rule tables cleaner. Compare
 
+```lua
     local X, Y, Z = V"X", V"Y", V"Z"
     M = tamale.matcher {
        { {X, X},    1},   -- capitalization helps to keep
@@ -125,6 +134,7 @@ with
        { {V'X', V'Y'},       2},
        { {V'X', V'Y', V'Z'}, 3},
     }
+```
 
 The _ example above could be reduced to `{_, _, X, _}`.
 
@@ -149,17 +159,20 @@ Indexing in Tamale is like indexing in relational databases - Rather than testin
 
 When the rule table
 
+```lua
     tamale.matcher {
         { {1, "a"}, 1 },
         { {1, "b"}, 2 },
         { {1, "c"}, 3 },
         { {2, "d"}, 4 },
     }
+```
 
 is matched against {2, "d"}, it only needs one test if the rule table is indexed by the first field - the fourth rule is the only one starting with 2. To specify a different index than `pattern[1]`, give the rule table a keyword argument of `index=I`, where I is either another key (such as 2 or "tag"), or a function. If a function is used, each rule will be indexed by the result of applying the function to it.
 
 For example, with the rule table
 
+```lua
     tamale.matcher {
        { {"a", "b", 1}, 1 },   -- index "ab"
        { {"a", "c", 1}, 2 },   -- index "ac"
@@ -167,6 +180,7 @@ For example, with the rule table
        { {"b", "c", 1}, 4 },   -- index "bc"
        index=function(rule) return rule[1] .. rule[2] end
     }
+```
 
 each rule will be indexed based on the first two fields concatenated, rather than just the first. An input value of {"a", "c", 1} would only
 need to check the second row, not the first.
@@ -180,6 +194,7 @@ Tamale has several debugging traces. They can be enabled either by spetting `tam
 
 Matching `{ "a", "c", 1 }` against
 
+```lua
     tamale.matcher {
        { {"a", "b", 1}, 1 },
        { {"a", "c", 1}, 2 },
@@ -198,5 +213,6 @@ will print
     -- Checking rules: 2
     -- Trying rule 2...matched
     2
+```
 
 This can be used to check whether indexing is effective, if one rule is pre-empting another, etc.
